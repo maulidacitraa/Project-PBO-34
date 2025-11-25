@@ -17,6 +17,7 @@ public class MainApp {
 
         if (!auth.login(u, p)) {
             System.out.println("Login gagal!");
+            sc.close();
             return;
         }
 
@@ -28,6 +29,7 @@ public class MainApp {
             System.out.println("1. Tambah ToDo");
             System.out.println("2. Lihat Semua");
             System.out.println("3. Hapus ToDo");
+            System.out.println("4. Buka GUI");
             System.out.println("0. Keluar");
             System.out.print("Pilih: ");
             choice = sc.nextInt();
@@ -70,6 +72,11 @@ public class MainApp {
                     System.out.print("Index hapus: ");
                     int i = sc.nextInt();
                     manager.remove(i);
+                }
+
+                case 4 -> {
+                    TodoGUI gui = new TodoGUI();
+                    gui.setVisible(true);
                 }
 
                 case 0 -> System.out.println("Keluar...");

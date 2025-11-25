@@ -14,4 +14,9 @@ public class EventToDo extends ToDo {
         System.out.println("[EVENT] " + title + " | " + date + " | " + priority);
         System.out.println("  Duration: " + durationHours + " hours");
     }
+    
+    @Override
+    public String getType() {
+        return "EventTodo";
+    }
 }

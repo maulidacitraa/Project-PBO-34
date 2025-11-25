@@ -14,4 +14,9 @@ public class ActivityToDo extends ToDo {
         System.out.println("[ACTIVITY] " + title + " | " + date + " | " + priority);
         System.out.println("  Location: " + location);
     }
+    
+    @Override
+    public String getType() {
+        return "ActivityTodo";
+    }
 }

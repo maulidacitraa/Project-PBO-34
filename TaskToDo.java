@@ -11,4 +11,9 @@ public class TaskToDo extends ToDo {
         System.out.println("[TASK] " + title + " | " + date + " | " + priority);
         System.out.println("  > " + description);
     }
+    
+    @Override
+    public String getType() {
+        return "TaskTodo";
+    }
 }
