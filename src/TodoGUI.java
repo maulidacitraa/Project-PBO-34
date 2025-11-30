@@ -13,30 +13,33 @@ public class TodoGUI extends JFrame {
     public TodoGUI() {
 
         setTitle("Let's Do!!");
-        setSize(800, 540);
+        setSize(1200, 800);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
 
         Color BG = new Color(0x1E1E1E);
 
-        JPanel root = new JPanel(new BorderLayout(10, 10));
-        root.setBackground(BG);
-        root.setBorder(new EmptyBorder(10, 10, 10, 10));
-        setContentPane(root);
+        JPanel base = new JPanel(new BorderLayout(10, 10));
+        base.setBackground(BG);
+        base.setBorder(new EmptyBorder(10, 10, 10, 10));
+        setContentPane(base);
 
         // TOP BAR
         JPanel topBar = new JPanel(new BorderLayout());
-        topBar.setOpaque(false);
+        topBar.setOpaque(true);
+        topBar.setBackground(new Color(40, 40, 40));
+        topBar.setPreferredSize(new Dimension(0, 60));
 
         JLabel title = new JLabel("Let's Do!!");
         title.setForeground(Color.WHITE);
-        title.setFont(new Font("Poppins", Font.BOLD, 20));
+        title.setFont(new Font("Segoe UI", Font.BOLD, 24));
 
         JButton btnAdd = new JButton("+ Add Task");
         styleButtonPrimary(btnAdd);
+        btnAdd.setPreferredSize(new Dimension(120, 20));
         btnAdd.addActionListener(e -> showAddTaskDialog());
 
-        topBar.add(title, BorderLayout.WEST);
+        topBar.add(title, BorderLayout.CENTER);
         topBar.add(btnAdd, BorderLayout.EAST);
 
         // SIDEBAR FILTER
@@ -48,14 +51,28 @@ public class TodoGUI extends JFrame {
         JLabel filterLabel = new JLabel("FILTERS");
         filterLabel.setForeground(Color.WHITE);
         filterLabel.setBorder(new EmptyBorder(10, 10, 10, 10));
-        filterLabel.setFont(new Font("Arial", Font.BOLD, 13));
+        filterLabel.setFont(new Font("Segoe UI", Font.BOLD, 13));
 
+        JPanel account = new JPanel();
+        account.setBackground(new Color(0x252525));
+        account.setLayout(new BoxLayout(account, BoxLayout.Y_AXIS));
+
+        JLabel userLabel = new JLabel("Uername: demo");
+        userLabel.setForeground(Color.WHITE);
+        userLabel.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        userLabel.setBorder(new EmptyBorder(10, 10, 10, 10));
+        account.add(userLabel);
+
+        sidebar.add(account);
         sidebar.add(filterLabel);
 
         addFilterButton(sidebar, "All");
         addFilterButton(sidebar, "ActivityTodo");
         addFilterButton(sidebar, "EventTodo");
         addFilterButton(sidebar, "TaskTodo");
+        addFilterButton(sidebar, "High");
+        addFilterButton(sidebar, "Medium");
+        addFilterButton(sidebar, "Low");
         addFilterButton(sidebar, "Completed");
 
         sidebar.add(Box.createVerticalGlue());
@@ -69,11 +86,11 @@ public class TodoGUI extends JFrame {
         scroll.setOpaque(false);
         scroll.getViewport().setOpaque(false);
         scroll.setBorder(null);
-        scroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        scroll.getVerticalScrollBar().setPreferredSize(new Dimension(0, 0));
 
-        root.add(topBar, BorderLayout.NORTH);
-        root.add(sidebar, BorderLayout.WEST);
-        root.add(scroll, BorderLayout.CENTER);
+        base.add(topBar, BorderLayout.NORTH);
+        base.add(sidebar, BorderLayout.WEST);
+        base.add(scroll, BorderLayout.CENTER);
 
         todos.add(new ActivityToDo("Meditate 10 mins", "Mindfulness meditation", LocalDate.now(), Priority.LOW, "Home"));
         todos.add(new EventToDo("Meeting at 3 PM", "Team standup", LocalDate.now(), Priority.HIGH, 1));
@@ -159,7 +176,7 @@ public class TodoGUI extends JFrame {
             refreshList();
         }
     }
-
+  
     // REFRESH LIST
     private void refreshList() {
         taskListPanel.removeAll();
@@ -207,21 +224,26 @@ public class TodoGUI extends JFrame {
 
         JLabel titleLabel = new JLabel(todo.title);
         titleLabel.setForeground(Color.WHITE);
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 15));
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 15));
 
         JLabel smallInfo = new JLabel(todo.getType() + " • Priority: " + todo.getPriority());
         smallInfo.setForeground(new Color(180,180,180));
-        smallInfo.setFont(new Font("Arial", Font.PLAIN, 11));
+        smallInfo.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+
+        JLabel descriptionLabel = new JLabel(todo.description);
+        descriptionLabel.setForeground(new Color(180,180,180));
+        descriptionLabel.setFont(new Font("Segoe UI", Font.PLAIN, 11));
 
         infoPanel.add(titleLabel);
         infoPanel.add(smallInfo);
+        infoPanel.add(descriptionLabel);
 
         // PRIORITY BADGE
         JLabel badge = new JLabel(todo.getPriority());
         badge.setOpaque(true);
         badge.setForeground(Color.BLACK);
         badge.setBorder(new EmptyBorder(3, 8, 3, 8));
-        badge.setFont(new Font("Arial", Font.BOLD, 11));
+        badge.setFont(new Font("Segoe UI", Font.BOLD, 11));
 
         switch (todo.getPriority()) {
             case "Low": badge.setBackground(new Color(85, 214, 120)); break;
@@ -261,6 +283,7 @@ public class TodoGUI extends JFrame {
         btn.setFocusPainted(false);
         btn.setBorder(new EmptyBorder(6, 12, 6, 12));
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btn.setPreferredSize(new Dimension(80, 30)); // ukuran sendiri
     }
 
     private void styleButtonSidebar(JButton btn) {
@@ -270,6 +293,7 @@ public class TodoGUI extends JFrame {
         btn.setAlignmentX(Component.LEFT_ALIGNMENT);
         btn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
         btn.setBorder(new EmptyBorder(6, 12, 6, 12));
+        btn.setFont(new Font("Segoe UI", Font.PLAIN, 14));
 
         btn.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
