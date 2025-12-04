@@ -134,6 +134,7 @@ public class TodoGUI extends JFrame {
         btnAdd.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         btnAdd.addActionListener(e -> showAddTaskDialog());
         base.add(btnAdd);
+        base.setComponentZOrder(btnAdd, 0);
 
         // SAMPLE DATA (Hapus ini nanti)
         todos.add(new ActivityToDo("Meditate", "Mindfulness", LocalDate.now(), Priority.LOW, "Home"));
@@ -227,14 +228,13 @@ public class TodoGUI extends JFrame {
             // KODE BARU: Menyimpan ke database
             ToDoManager manager = new ToDoManager(); 
             int userId = loggedInUser.getId(); 
-            
-            if (manager.saveToDo(newTodo, userId)) {
-                todos.add(newTodo);
+
+            if (manager.saveToDo(newTodo, userId)) { 
+                todos.add(newTodo); 
                 JOptionPane.showMessageDialog(this, "To-Do berhasil ditambahkan dan disimpan!", "Sukses", JOptionPane.INFORMATION_MESSAGE);
             } else {
                 JOptionPane.showMessageDialog(this, "Gagal menyimpan To-Do ke database.", "Error", JOptionPane.ERROR_MESSAGE);
             }
-
             refreshList();
         }
     }
