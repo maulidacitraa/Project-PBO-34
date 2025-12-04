@@ -19,4 +19,12 @@ public class ActivityToDo extends ToDo {
     public String getType() {
         return "ActivityTodo";
     }
+    
+    public String getLocation() {
+        return location;
+    }
+    
+    public void setLocation(String location) {
+        this.location = location;
+    }
 }

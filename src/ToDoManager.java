@@ -2,7 +2,7 @@ import java.util.ArrayList;
 
 public class ToDoManager {
 
-    private ArrayList<ToDo> todos = new ArrayList<>();
+    private final ArrayList<ToDo> todos = new ArrayList<>();
 
     public void add(ToDo todo) {
         todos.add(todo);

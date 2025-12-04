@@ -19,4 +19,12 @@ public class EventToDo extends ToDo {
     public String getType() {
         return "EventTodo";
     }
+    
+    public int getDurationHours() {
+        return durationHours;
+    }
+    
+    public void setDurationHours(int durationHours) {
+        this.durationHours = durationHours;
+    }
 }
