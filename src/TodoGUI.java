@@ -8,6 +8,9 @@ public class TodoGUI extends JFrame {
 
     private final JPanel taskListPanel;
     private final java.util.List<ToDo> todos = new ArrayList<>();
+    
+    // PERUBAHAN UTAMA 1: Menggunakan objek User
+    private final User loggedInUser; 
     private final String currentUsername;
 
     private String activeFilter = "All";
@@ -19,8 +22,10 @@ public class TodoGUI extends JFrame {
     private final Color CARD = new Color(0x3B6E8A);        // Cards + Sidebar
     private final Color CREAM = new Color(0xF1F0E8);       // Optional softer bg
 
-    public TodoGUI(String username) {
-        this.currentUsername = username;
+    // PERUBAHAN UTAMA 2: Constructor menerima objek User
+    public TodoGUI(User user) {
+        this.loggedInUser = user;
+        this.currentUsername = user.getUsername();
 
         setTitle("Let's Do!!");
         setSize(1200, 800);
@@ -29,7 +34,7 @@ public class TodoGUI extends JFrame {
 
         // BASE FRAME — Absolute Layout
         JPanel base = new JPanel(null);
-        base.setBackground(SECONDARY);  // Sama dengan Login
+        base.setBackground(SECONDARY);
         setContentPane(base);
 
         // ========================
@@ -130,7 +135,7 @@ public class TodoGUI extends JFrame {
         btnAdd.addActionListener(e -> showAddTaskDialog());
         base.add(btnAdd);
 
-        // SAMPLE DATA
+        // SAMPLE DATA (Hapus ini nanti)
         todos.add(new ActivityToDo("Meditate", "Mindfulness", LocalDate.now(), Priority.LOW, "Home"));
         todos.add(new EventToDo("Meeting", "Team standup", LocalDate.now(), Priority.HIGH, 1));
         todos.add(new TaskToDo("Homework", "Java OOP", LocalDate.now().plusDays(1), Priority.MEDIUM));
@@ -156,7 +161,7 @@ public class TodoGUI extends JFrame {
         sidebar.add(btn);
     }
 
-    // ADD TASK DIALOG (TIDAK DIUBAH)
+    // ADD TASK DIALOG (Diubah untuk menyimpan ke database)
     private void showAddTaskDialog() {
         JTextField titleField = new JTextField();
 
@@ -165,11 +170,34 @@ public class TodoGUI extends JFrame {
 
         String[] priorities = {"Low", "Medium", "High"};
         JComboBox<String> priorityBox = new JComboBox<>(priorities);
+        
+        // Input tambahan untuk detail Activity/Event
+        JTextField detailField = new JTextField();
+        JLabel detailLabel = new JLabel("Location/Duration:");
+        detailField.setVisible(false);
+        detailLabel.setVisible(false);
+
+        typeBox.addActionListener(e -> {
+            String selected = (String) typeBox.getSelectedItem();
+            if ("ActivityTodo".equals(selected)) {
+                detailLabel.setText("Location:");
+                detailField.setVisible(true);
+                detailLabel.setVisible(true);
+            } else if ("EventTodo".equals(selected)) {
+                detailLabel.setText("Duration (Hours):");
+                detailField.setVisible(true);
+                detailLabel.setVisible(true);
+            } else {
+                detailField.setVisible(false);
+                detailLabel.setVisible(false);
+            }
+        });
 
         Object[] form = {
                 "Task name:", titleField,
                 "Type:", typeBox,
-                "Priority:", priorityBox
+                "Priority:", priorityBox,
+                detailLabel, detailField
         };
 
         int result = JOptionPane.showConfirmDialog(this, form, "Add Task", JOptionPane.OK_CANCEL_OPTION);
@@ -178,19 +206,35 @@ public class TodoGUI extends JFrame {
 
             ToDo newTodo;
             Priority prio = Priority.valueOf(priorityBox.getSelectedItem().toString().toUpperCase());
+            String detail = detailField.getText().trim();
 
             switch (typeBox.getSelectedItem().toString()) {
                 case "ActivityTodo":
-                    newTodo = new ActivityToDo(titleField.getText(), "Description", LocalDate.now(), prio, "Home");
+                    String location = detail.isEmpty() ? "Unknown" : detail;
+                    newTodo = new ActivityToDo(titleField.getText(), "Description", LocalDate.now(), prio, location);
                     break;
                 case "EventTodo":
-                    newTodo = new EventToDo(titleField.getText(), "Description", LocalDate.now(), prio, 1);
+                    int duration = 1;
+                    try {
+                        duration = Integer.parseInt(detail);
+                    } catch (NumberFormatException ignored) {}
+                    newTodo = new EventToDo(titleField.getText(), "Description", LocalDate.now(), prio, duration);
                     break;
                 default:
                     newTodo = new TaskToDo(titleField.getText(), "Description", LocalDate.now(), prio);
             }
 
-            todos.add(newTodo);
+            // KODE BARU: Menyimpan ke database
+            ToDoManager manager = new ToDoManager(); 
+            int userId = loggedInUser.getId(); 
+            
+            if (manager.saveToDo(newTodo, userId)) {
+                todos.add(newTodo);
+                JOptionPane.showMessageDialog(this, "To-Do berhasil ditambahkan dan disimpan!", "Sukses", JOptionPane.INFORMATION_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(this, "Gagal menyimpan To-Do ke database.", "Error", JOptionPane.ERROR_MESSAGE);
+            }
+
             refreshList();
         }
     }
@@ -213,6 +257,7 @@ public class TodoGUI extends JFrame {
         if (result == JOptionPane.OK_OPTION) {
             todo.setTitle(titleField.getText().trim());
             todo.setPriority(prioBox.getSelectedItem().toString());
+            // TODO: Tambahkan panggilan update ke DB di sini
             refreshList();
         }
     }
@@ -289,6 +334,7 @@ public class TodoGUI extends JFrame {
         edit.addActionListener(e -> showEditDialog(todo));
         done.addActionListener(e -> {
             todo.setCompleted(true);
+            // TODO: Tambahkan panggilan update status ke DB di sini
             refreshList();
         });
 

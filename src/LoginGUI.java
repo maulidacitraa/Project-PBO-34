@@ -117,7 +117,6 @@ public class LoginGUI extends JFrame {
         btnRegister.addActionListener(e -> handleRegister());
     }
 
-
     // ==========================
     // LOGIN PROCESS
     // ==========================
@@ -125,15 +124,25 @@ public class LoginGUI extends JFrame {
         String user = usernameField.getText();
         String pass = new String(passwordField.getPassword());
 
+        if (user.isBlank() || pass.isBlank()) {
+            JOptionPane.showMessageDialog(this,
+                    "Isi username dan password dulu!",
+                    "Gagal Login",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
         AuthService auth = new AuthService();
 
-        if (auth.login(user, pass)) {
-            TodoGUI todoGUI = new TodoGUI(user);
+        User loggedInUser = auth.login(user, pass); 
+
+        if (loggedInUser != null) {
+            TodoGUI todoGUI = new TodoGUI(loggedInUser);
             todoGUI.setVisible(true);
             this.dispose();
         } else {
             JOptionPane.showMessageDialog(this,
-                    "Username atau password salah!",
+                    "Username atau password salah! (Cek koneksi DB & data user)",
                     "Login Gagal",
                     JOptionPane.ERROR_MESSAGE);
         }
@@ -171,5 +180,4 @@ public class LoginGUI extends JFrame {
                     JOptionPane.ERROR_MESSAGE);
         }
     }
-
 }
