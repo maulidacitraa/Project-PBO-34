@@ -1,189 +1,381 @@
 import java.awt.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.stream.Collectors;
+import java.util.List;
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
+import javax.swing.border.*;
+import com.toedter.calendar.JDateChooser;
 
 public class TodoGUI extends JFrame {
+    // Pink Color Palette 
+    private final Color PINK_PRIMARY = new Color(0xFFB3D9);
+    private final Color PINK_SECONDARY = new Color(0xFFE5F0);
+    private final Color PINK_ACCENT = new Color(0xFF85B3);
+    private final Color PINK_DARK = new Color(0xE875A0);
+    private final Color PINK_LIGHT = new Color(0xFFF0F7);
+    private final Color WHITE = Color.WHITE;
 
-    private final JPanel taskListPanel;
-    private final java.util.List<ToDo> todos = new ArrayList<>();
-    
-    private final User loggedInUser; 
-    private final String currentUsername;
+    private final JPanel todoListPanel;
+    private final List<ToDo> todos;
+    private final User loggedInUser;
+    private final ToDoManager manager;
 
-    private String activeFilter = "All";
-    private String priorityFilter = "AllPriority";
+    private String activeFilter = "ALL";
+    private Priority priorityFilter = null;
 
-    private final Color PRIMARY = new Color(0x4682A9);
-    private final Color SECONDARY = new Color(0xC4E1E6);
-    private final Color CARD = new Color(0x3B6E8A);
+    private JLabel statsLabel;
 
     public TodoGUI(User user) {
         this.loggedInUser = user;
-        this.currentUsername = user.getUsername();
+        this.todos = new ArrayList<>();
+        this.manager = new ToDoManager();
 
-        setTitle("Let's Do!!");
-        setSize(1200, 800);
+        setTitle("✨ Cute Todo List 💖");
+        setSize(1400, 900);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
 
-        JPanel base = new JPanel(null);
-        base.setBackground(SECONDARY);
-        setContentPane(base);
+        // Main Panel with gradient
+        JPanel mainPanel = new JPanel(new BorderLayout()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2d = (Graphics2D) g;
+                GradientPaint gradient = new GradientPaint(
+                    0, 0, PINK_LIGHT,
+                    0, getHeight(), PINK_SECONDARY
+                );
+                g2d.setPaint(gradient);
+                g2d.fillRect(0, 0, getWidth(), getHeight());
+            }
+        };
+        setContentPane(mainPanel);
 
-        // TOP BAR
-        JPanel topBar = new JPanel(new BorderLayout());
-        topBar.setBackground(PRIMARY);
-        topBar.setBounds(0, 0, 1200, 60);
+        // Top Bar
+        mainPanel.add(createTopBar(), BorderLayout.NORTH);
 
-        JLabel title = new JLabel("Let's Do!!", SwingConstants.CENTER);
-        title.setForeground(Color.WHITE);
-        title.setFont(new Font("Segoe UI", Font.BOLD, 28));
-        topBar.add(title, BorderLayout.CENTER);
-        
-        // Statistics button
-        JButton btnStats = new JButton("📊 Stats");
-        btnStats.setBackground(PRIMARY.darker());
-        btnStats.setForeground(Color.WHITE);
-        btnStats.setFocusPainted(false);
-        btnStats.addActionListener(e -> showStatistics());
-        topBar.add(btnStats, BorderLayout.EAST);
+        // Sidebar
+        mainPanel.add(createSidebar(), BorderLayout.WEST);
 
-        base.add(topBar);
+        // Center Content
+        mainPanel.add(createCenterPanel(), BorderLayout.CENTER);
 
-        // SIDEBAR
-        JPanel sidebar = new JPanel();
-        sidebar.setBackground(CARD);
-        sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.Y_AXIS));
-        sidebar.setBounds(0, 60, 180, 740);
+        // Floating Add Button
+        JButton fabButton = createFAB();
+        mainPanel.add(fabButton, BorderLayout.SOUTH);
 
-        JLabel userLabel = new JLabel("User: " + currentUsername);
-        userLabel.setForeground(Color.WHITE);
-        userLabel.setBorder(new EmptyBorder(12, 12, 12, 12));
-        sidebar.add(userLabel);
-
-        JLabel filterLabel = new JLabel("FILTER TYPE");
-        filterLabel.setForeground(Color.WHITE);
-        filterLabel.setBorder(new EmptyBorder(12, 12, 12, 12));
-        sidebar.add(filterLabel);
-
-        addFilterButton(sidebar, "All");
-        addFilterButton(sidebar, "ActivityTodo");
-        addFilterButton(sidebar, "EventTodo");
-        addFilterButton(sidebar, "TaskTodo");
-        addFilterButton(sidebar, "Completed");
-        
-        sidebar.add(Box.createRigidArea(new Dimension(0, 20)));
-        
-        // Export buttons
-        JButton btnExportCSV = new JButton("📤 Export CSV");
-        btnExportCSV.setBackground(CARD.darker());
-        btnExportCSV.setForeground(Color.WHITE);
-        btnExportCSV.setFocusPainted(false);
-        btnExportCSV.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
-        btnExportCSV.addActionListener(e -> exportTodos("CSV"));
-        sidebar.add(btnExportCSV);
-        
-        JButton btnExportTXT = new JButton("📝 Export TXT");
-        btnExportTXT.setBackground(CARD.darker());
-        btnExportTXT.setForeground(Color.WHITE);
-        btnExportTXT.setFocusPainted(false);
-        btnExportTXT.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
-        btnExportTXT.addActionListener(e -> exportTodos("TXT"));
-        sidebar.add(btnExportTXT);
-
-        base.add(sidebar);
-
-        // MAIN PANEL
-        JPanel mainPanel = new JPanel(null);
-        mainPanel.setOpaque(false);
-        mainPanel.setBounds(190, 70, 980, 670);
-        base.add(mainPanel);
-
-        // PRIORITY FILTER BAR
-        JPanel priorityBar = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        priorityBar.setBackground(PRIMARY);
-        priorityBar.setBounds(0, 0, 980, 45);
-
-        JLabel prioLabel = new JLabel("Priority:");
-        prioLabel.setForeground(Color.WHITE);
-
-        String[] prOptions = {"AllPriority", "Low", "Medium", "High"};
-        JComboBox<String> prioFilter = new JComboBox<>(prOptions);
-        prioFilter.addActionListener(e -> {
-            priorityFilter = prioFilter.getSelectedItem().toString();
-            refreshList();
-        });
-
-        priorityBar.add(prioLabel);
-        priorityBar.add(prioFilter);
-        
-        // Search field
-        JTextField searchField = new JTextField(15);
-        searchField.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        JButton btnSearch = new JButton("🔍 Search");
-        btnSearch.setBackground(PRIMARY.brighter());
-        btnSearch.setForeground(Color.WHITE);
-        btnSearch.setFocusPainted(false);
-        btnSearch.addActionListener(e -> performSearch(searchField.getText()));
-        
-        priorityBar.add(Box.createRigidArea(new Dimension(20, 0)));
-        priorityBar.add(new JLabel("Search:"));
-        priorityBar.add(searchField);
-        priorityBar.add(btnSearch);
-        
-        // Refresh button
-        JButton btnRefresh = new JButton("🔄");
-        btnRefresh.setBackground(PRIMARY.brighter());
-        btnRefresh.setForeground(Color.WHITE);
-        btnRefresh.setFocusPainted(false);
-        btnRefresh.setToolTipText("Refresh from database");
-        btnRefresh.addActionListener(e -> loadTodosFromDatabase());
-        priorityBar.add(btnRefresh);
-        
-        mainPanel.add(priorityBar);
-
-        // TASK LIST AREA
-        taskListPanel = new JPanel();
-        taskListPanel.setLayout(new BoxLayout(taskListPanel, BoxLayout.Y_AXIS));
-        taskListPanel.setOpaque(false);
-
-        JScrollPane scroll = new JScrollPane(taskListPanel);
-        scroll.setBounds(0, 50, 980, 620);
-        scroll.setOpaque(false);
-        scroll.getViewport().setOpaque(false);
-        scroll.setBorder(null);
-
-        mainPanel.add(scroll);
-
-        // FLOATING ADD BUTTON
-        JButton btnAdd = new JButton("+");
-        btnAdd.setBounds(1110, 610, 60, 60);
-        btnAdd.setBackground(PRIMARY.brighter());
-        btnAdd.setForeground(Color.WHITE);
-        btnAdd.setFont(new Font("Segoe UI", Font.BOLD, 30));
-        btnAdd.setFocusPainted(false);
-        btnAdd.setBorder(null);
-        btnAdd.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btnAdd.addActionListener(e -> showAddTaskDialog());
-        base.add(btnAdd);
-        base.setComponentZOrder(btnAdd, 0);
-
-        // Load data dari database menggunakan thread
-        loadTodosFromDatabase();
+        // Load todos
+        loadTodos();
     }
 
-    // Load todos menggunakan TodoLoaderThread
-    private void loadTodosFromDatabase() {
-        taskListPanel.removeAll();
-        JLabel loading = new JLabel("⏳ Loading todos...", SwingConstants.CENTER);
-        loading.setForeground(Color.DARK_GRAY);
-        loading.setFont(new Font("Segoe UI", Font.PLAIN, 16));
-        taskListPanel.add(loading);
-        taskListPanel.revalidate();
-        taskListPanel.repaint();
+    private JPanel createTopBar() {
+        JPanel topBar = new JPanel(new BorderLayout());
+        topBar.setBackground(PINK_PRIMARY);
+        topBar.setPreferredSize(new Dimension(1400, 80));
+        topBar.setBorder(new EmptyBorder(15, 20, 15, 20));
+
+        // Left: Title
+        JLabel titleLabel = new JLabel("✨ My Cute Todo List 💖");
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 32));
+        titleLabel.setForeground(PINK_DARK);
+        topBar.add(titleLabel, BorderLayout.WEST);
+
+        // Right: User info & buttons
+        JPanel rightPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 0));
+        rightPanel.setOpaque(false);
+
+        statsLabel = new JLabel("📊 Loading...");
+        statsLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        statsLabel.setForeground(PINK_DARK);
+        rightPanel.add(statsLabel);
+
+        JButton statsButton = createTopButton("📊 Stats", PINK_ACCENT);
+        statsButton.addActionListener(e -> showStatistics());
+        rightPanel.add(statsButton);
+
+        JButton refreshButton = createTopButton("🔄 Refresh", PINK_ACCENT);
+        refreshButton.addActionListener(e -> loadTodos());
+        rightPanel.add(refreshButton);
+
+        JLabel userLabel = new JLabel("👤 " + loggedInUser.getUsername());
+        userLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        userLabel.setForeground(WHITE);
+        userLabel.setOpaque(true);
+        userLabel.setBackground(PINK_DARK);
+        userLabel.setBorder(new EmptyBorder(8, 15, 8, 15));
+        rightPanel.add(userLabel);
+
+        topBar.add(rightPanel, BorderLayout.EAST);
+
+        return topBar;
+    }
+
+    private JButton createTopButton(String text, Color color) {
+        JButton btn = new JButton(text) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                if (getModel().isPressed()) {
+                    g2d.setColor(color.darker());
+                } else if (getModel().isRollover()) {
+                    g2d.setColor(color.brighter());
+                } else {
+                    g2d.setColor(color);
+                }
+                
+                g2d.fillRoundRect(0, 0, getWidth(), getHeight(), 20, 20);
+                super.paintComponent(g);
+            }
+        };
+        
+        btn.setForeground(WHITE);
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        btn.setContentAreaFilled(false);
+        btn.setBorderPainted(false);
+        btn.setFocusPainted(false);
+        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btn.setPreferredSize(new Dimension(120, 40));
+        
+        return btn;
+    }
+
+    private JPanel createSidebar() {
+        JPanel sidebar = new JPanel();
+        sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.Y_AXIS));
+        sidebar.setBackground(WHITE);
+        sidebar.setPreferredSize(new Dimension(250, 820));
+        sidebar.setBorder(new CompoundBorder(
+            new MatteBorder(0, 0, 0, 3, PINK_PRIMARY),
+            new EmptyBorder(20, 15, 20, 15)
+        ));
+
+        // Filter Section
+        addSidebarTitle(sidebar, "🔍 FILTERS");
+        
+        addFilterButton(sidebar, "ALL", "🌟 All Todos", null);
+        addFilterButton(sidebar, "ACTIVITY", "🎯 Activities", null);
+        addFilterButton(sidebar, "EVENT", "📅 Events", null);
+        addFilterButton(sidebar, "TASK", "✏️ Tasks", null);
+        addFilterButton(sidebar, "COMPLETED", "✅ Completed", null);
+        addFilterButton(sidebar, "ACTIVE", "⏳ Active", null);
+
+        sidebar.add(Box.createRigidArea(new Dimension(0, 20)));
+        sidebar.add(new JSeparator());
+        sidebar.add(Box.createRigidArea(new Dimension(0, 20)));
+
+        // Priority Section
+        addSidebarTitle(sidebar, "🎨 PRIORITY");
+        
+        addFilterButton(sidebar, "PRIORITY_ALL", "🌈 All", null);
+        addFilterButton(sidebar, "PRIORITY_HIGH", "🔴 High", Priority.HIGH);
+        addFilterButton(sidebar, "PRIORITY_MEDIUM", "🟡 Medium", Priority.MEDIUM);
+        addFilterButton(sidebar, "PRIORITY_LOW", "🟢 Low", Priority.LOW);
+
+        sidebar.add(Box.createVerticalGlue());
+
+        return sidebar;
+    }
+
+    private void addSidebarTitle(JPanel sidebar, String title) {
+        JLabel label = new JLabel(title);
+        label.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        label.setForeground(PINK_DARK);
+        label.setAlignmentX(Component.LEFT_ALIGNMENT);
+        sidebar.add(label);
+        sidebar.add(Box.createRigidArea(new Dimension(0, 10)));
+    }
+
+    private void addFilterButton(JPanel sidebar, String filter, String text, Priority priority) {
+        JButton btn = new JButton(text) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                boolean isActive = filter.startsWith("PRIORITY_") 
+                    ? (filter.equals("PRIORITY_ALL") && priorityFilter == null) || 
+                      (priority != null && priority == priorityFilter)
+                    : activeFilter.equals(filter);
+                
+                if (isActive) {
+                    g2d.setColor(PINK_PRIMARY);
+                } else if (getModel().isRollover()) {
+                    g2d.setColor(PINK_SECONDARY);
+                } else {
+                    g2d.setColor(PINK_LIGHT);
+                }
+                
+                g2d.fillRoundRect(0, 0, getWidth(), getHeight(), 15, 15);
+                super.paintComponent(g);
+            }
+        };
+        
+        btn.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        btn.setForeground(PINK_DARK);
+        btn.setHorizontalAlignment(SwingConstants.LEFT);
+        btn.setContentAreaFilled(false);
+        btn.setBorderPainted(false);
+        btn.setFocusPainted(false);
+        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        btn.setAlignmentX(Component.LEFT_ALIGNMENT);
+        
+        btn.addActionListener(e -> {
+            if (filter.startsWith("PRIORITY_")) {
+                priorityFilter = priority;
+            } else {
+                activeFilter = filter;
+            }
+            refreshList();
+        });
+        
+        sidebar.add(btn);
+        sidebar.add(Box.createRigidArea(new Dimension(0, 5)));
+    }
+
+    // Continuation of TodoGUI.java
+    
+    private JPanel createCenterPanel() {
+        JPanel centerPanel = new JPanel(new BorderLayout());
+        centerPanel.setOpaque(false);
+        centerPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
+
+        // Search Bar
+        centerPanel.add(createSearchBar(), BorderLayout.NORTH);
+
+        // Todo List
+        todoListPanel = new JPanel();
+        todoListPanel.setLayout(new BoxLayout(todoListPanel, BoxLayout.Y_AXIS));
+        todoListPanel.setOpaque(false);
+
+        JScrollPane scrollPane = new JScrollPane(todoListPanel);
+        scrollPane.setOpaque(false);
+        scrollPane.getViewport().setOpaque(false);
+        scrollPane.setBorder(null);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        
+        centerPanel.add(scrollPane, BorderLayout.CENTER);
+
+        return centerPanel;
+    }
+
+    private JPanel createSearchBar() {
+        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
+        searchPanel.setOpaque(false);
+
+        JTextField searchField = new JTextField(25);
+        searchField.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+        searchField.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(PINK_ACCENT, 2, true),
+            new EmptyBorder(8, 15, 8, 15)
+        ));
+        searchField.setBackground(WHITE);
+
+        JButton searchBtn = createCuteButton("🔍 Search", PINK_ACCENT);
+        searchBtn.setPreferredSize(new Dimension(120, 40));
+        searchBtn.addActionListener(e -> {
+            String keyword = searchField.getText().trim();
+            if (!keyword.isEmpty()) {
+                performSearch(keyword);
+            } else {
+                loadTodos();
+            }
+        });
+
+        JButton clearBtn = createCuteButton("✨ Clear", PINK_PRIMARY);
+        clearBtn.setPreferredSize(new Dimension(100, 40));
+        clearBtn.addActionListener(e -> {
+            searchField.setText("");
+            loadTodos();
+        });
+
+        searchPanel.add(new JLabel("🔎"));
+        searchPanel.add(searchField);
+        searchPanel.add(searchBtn);
+        searchPanel.add(clearBtn);
+
+        return searchPanel;
+    }
+
+    private JButton createFAB() {
+        JButton fab = new JButton("➕") {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                // Shadow
+                g2d.setColor(new Color(0, 0, 0, 50));
+                g2d.fillOval(4, 4, getWidth() - 4, getHeight() - 4);
+                
+                // Button
+                if (getModel().isPressed()) {
+                    g2d.setColor(PINK_DARK.darker());
+                } else if (getModel().isRollover()) {
+                    g2d.setColor(PINK_DARK.brighter());
+                } else {
+                    g2d.setColor(PINK_DARK);
+                }
+                
+                g2d.fillOval(0, 0, getWidth() - 4, getHeight() - 4);
+                
+                super.paintComponent(g);
+            }
+        };
+        
+        fab.setFont(new Font("Segoe UI", Font.BOLD, 36));
+        fab.setForeground(WHITE);
+        fab.setBounds(1280, 780, 80, 80);
+        fab.setContentAreaFilled(false);
+        fab.setBorderPainted(false);
+        fab.setFocusPainted(false);
+        fab.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        fab.addActionListener(e -> showAddDialog());
+        
+        return fab;
+    }
+
+    private JButton createCuteButton(String text, Color color) {
+        JButton btn = new JButton(text) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                if (getModel().isPressed()) {
+                    g2d.setColor(color.darker());
+                } else if (getModel().isRollover()) {
+                    g2d.setColor(color.brighter());
+                } else {
+                    g2d.setColor(color);
+                }
+                
+                g2d.fillRoundRect(0, 0, getWidth(), getHeight(), 20, 20);
+                super.paintComponent(g);
+            }
+        };
+        
+        btn.setForeground(WHITE);
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        btn.setContentAreaFilled(false);
+        btn.setBorderPainted(false);
+        btn.setFocusPainted(false);
+        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        
+        return btn;
+    }
+
+    private void loadTodos() {
+        todoListPanel.removeAll();
+        
+        JPanel loadingPanel = new JPanel();
+        loadingPanel.setOpaque(false);
+        loadingPanel.add(new JLabel("⏳ Loading your cute todos..."));
+        todoListPanel.add(loadingPanel);
+        todoListPanel.revalidate();
+        todoListPanel.repaint();
         
         TodoLoaderThread loader = new TodoLoaderThread(loggedInUser.getId());
         loader.start();
@@ -194,14 +386,13 @@ public class TodoGUI extends JFrame {
                 
                 SwingUtilities.invokeLater(() -> {
                     if (loader.getErrorMessage() != null) {
-                        JOptionPane.showMessageDialog(this,
-                                "Error loading todos: " + loader.getErrorMessage(),
-                                "Error",
-                                JOptionPane.ERROR_MESSAGE);
+                        showMessage("❌ Error", "Failed to load todos: " + loader.getErrorMessage(), 
+                                  JOptionPane.ERROR_MESSAGE);
                         todos.clear();
                     } else {
                         todos.clear();
                         todos.addAll(loader.getLoadedTodos());
+                        updateStats();
                     }
                     refreshList();
                 });
@@ -212,20 +403,15 @@ public class TodoGUI extends JFrame {
         }).start();
     }
 
-    // Search menggunakan SearchThread
     private void performSearch(String keyword) {
-        if (keyword.trim().isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Masukkan keyword pencarian!", "Warning", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
+        todoListPanel.removeAll();
         
-        taskListPanel.removeAll();
-        JLabel searching = new JLabel("🔍 Searching for '" + keyword + "'...", SwingConstants.CENTER);
-        searching.setForeground(Color.DARK_GRAY);
-        searching.setFont(new Font("Segoe UI", Font.PLAIN, 16));
-        taskListPanel.add(searching);
-        taskListPanel.revalidate();
-        taskListPanel.repaint();
+        JPanel searchingPanel = new JPanel();
+        searchingPanel.setOpaque(false);
+        searchingPanel.add(new JLabel("🔍 Searching for '" + keyword + "'..."));
+        todoListPanel.add(searchingPanel);
+        todoListPanel.revalidate();
+        todoListPanel.repaint();
         
         SearchThread searcher = new SearchThread(loggedInUser.getId(), keyword);
         searcher.start();
@@ -236,22 +422,19 @@ public class TodoGUI extends JFrame {
                 
                 SwingUtilities.invokeLater(() -> {
                     if (searcher.getErrorMessage() != null) {
-                        JOptionPane.showMessageDialog(this,
-                                "Search error: " + searcher.getErrorMessage(),
-                                "Error",
-                                JOptionPane.ERROR_MESSAGE);
+                        showMessage("❌ Error", "Search failed: " + searcher.getErrorMessage(), 
+                                  JOptionPane.ERROR_MESSAGE);
                     } else {
                         todos.clear();
                         todos.addAll(searcher.getSearchResults());
-                        refreshList();
                         
                         if (todos.isEmpty()) {
-                            JOptionPane.showMessageDialog(this,
-                                    "Tidak ditemukan hasil untuk: " + keyword,
-                                    "Search Result",
-                                    JOptionPane.INFORMATION_MESSAGE);
+                            showMessage("😢 Not Found", 
+                                      "No todos found with keyword: " + keyword, 
+                                      JOptionPane.INFORMATION_MESSAGE);
                         }
                     }
+                    refreshList();
                 });
                 
             } catch (InterruptedException e) {
@@ -260,17 +443,23 @@ public class TodoGUI extends JFrame {
         }).start();
     }
 
-    // Statistics menggunakan StatisticsCalculatorThread
     private void showStatistics() {
-        StatisticsCalculatorThread stats = new StatisticsCalculatorThread(loggedInUser.getId());
+        StatisticsThread stats = new StatisticsThread(loggedInUser.getId());
         stats.start();
         
-        JDialog loadingDialog = new JDialog(this, "Loading Statistics", true);
-        loadingDialog.setSize(300, 100);
+        JDialog loadingDialog = new JDialog(this, "📊 Statistics", true);
+        loadingDialog.setSize(400, 150);
         loadingDialog.setLocationRelativeTo(this);
         
-        JLabel loadingLabel = new JLabel("📊 Calculating statistics...", SwingConstants.CENTER);
-        loadingDialog.add(loadingLabel);
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(PINK_LIGHT);
+        panel.setBorder(new EmptyBorder(20, 20, 20, 20));
+        
+        JLabel loadingLabel = new JLabel("📊 Calculating cute statistics... 💖", SwingConstants.CENTER);
+        loadingLabel.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+        panel.add(loadingLabel);
+        
+        loadingDialog.setContentPane(panel);
         
         new Thread(() -> {
             try {
@@ -280,15 +469,10 @@ public class TodoGUI extends JFrame {
                     loadingDialog.dispose();
                     
                     if (stats.getErrorMessage() != null) {
-                        JOptionPane.showMessageDialog(this,
-                                "Error: " + stats.getErrorMessage(),
-                                "Statistics Error",
-                                JOptionPane.ERROR_MESSAGE);
+                        showMessage("❌ Error", stats.getErrorMessage(), JOptionPane.ERROR_MESSAGE);
                     } else {
-                        JOptionPane.showMessageDialog(this,
-                                stats.getSummary(),
-                                "Todo Statistics",
-                                JOptionPane.INFORMATION_MESSAGE);
+                        showMessage("📊 Todo Statistics", stats.getSummary(), 
+                                  JOptionPane.INFORMATION_MESSAGE);
                     }
                 });
                 
@@ -311,261 +495,520 @@ public class TodoGUI extends JFrame {
         }).start();
     }
 
-    // Export menggunakan ExportThread
-    private void exportTodos(String format) {
-        ExportThread exporter = new ExportThread(loggedInUser.getId(), format);
-        exporter.start();
-        
-        JDialog exportDialog = new JDialog(this, "Exporting", true);
-        exportDialog.setSize(350, 100);
-        exportDialog.setLocationRelativeTo(this);
-        
-        JLabel exportLabel = new JLabel("📤 Exporting to " + format + "...", SwingConstants.CENTER);
-        exportDialog.add(exportLabel);
-        
-        new Thread(() -> {
-            try {
-                exporter.join();
-                
-                SwingUtilities.invokeLater(() -> {
-                    exportDialog.dispose();
-                    
-                    if (exporter.getErrorMessage() != null) {
-                        JOptionPane.showMessageDialog(this,
-                                "Export error: " + exporter.getErrorMessage(),
-                                "Export Error",
-                                JOptionPane.ERROR_MESSAGE);
-                    } else {
-                        JOptionPane.showMessageDialog(this,
-                                "Export berhasil!\nFile: " + exporter.getOutputFilePath(),
-                                "Export Success",
-                                JOptionPane.INFORMATION_MESSAGE);
-                    }
-                });
-                
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }).start();
-        
-        new Thread(() -> {
-            try {
-                Thread.sleep(300);
-                if (exporter.isFinished()) {
-                    SwingUtilities.invokeLater(() -> exportDialog.dispose());
-                } else {
-                    SwingUtilities.invokeLater(() -> exportDialog.setVisible(true));
-                }
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }).start();
-    }
+    // Continuation of TodoGUI.java - Dialogs and Card Creation
 
-    private void addFilterButton(JPanel sidebar, String name) {
-        JButton btn = new JButton(name);
-        btn.setBackground(CARD.darker());
-        btn.setForeground(Color.WHITE);
-        btn.setFocusPainted(false);
-        btn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+    private void showAddDialog() {
+        JDialog dialog = new JDialog(this, "✨ Add New Todo 💖", true);
+        dialog.setSize(500, 650);
+        dialog.setLocationRelativeTo(this);
 
-        btn.addActionListener(e -> {
-            activeFilter = name;
-            refreshList();
-        });
+        JPanel mainPanel = new JPanel();
+        mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
+        mainPanel.setBackground(PINK_LIGHT);
+        mainPanel.setBorder(new EmptyBorder(25, 30, 25, 30));
 
-        sidebar.add(btn);
-    }
+        // Title Field
+        mainPanel.add(createLabel("✏️ Title:"));
+        JTextField titleField = createTextField();
+        mainPanel.add(titleField);
+        mainPanel.add(Box.createRigidArea(new Dimension(0, 15)));
 
-    private void showAddTaskDialog() {
-        JTextField titleField = new JTextField();
+        // Description Field
+        mainPanel.add(createLabel("📝 Description:"));
+        JTextArea descArea = new JTextArea(3, 20);
+        descArea.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        descArea.setLineWrap(true);
+        descArea.setWrapStyleWord(true);
+        descArea.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(PINK_ACCENT, 2, true),
+            new EmptyBorder(10, 10, 10, 10)
+        ));
+        JScrollPane descScroll = new JScrollPane(descArea);
+        descScroll.setPreferredSize(new Dimension(400, 80));
+        mainPanel.add(descScroll);
+        mainPanel.add(Box.createRigidArea(new Dimension(0, 15)));
 
-        String[] types = {"ActivityTodo", "EventTodo", "TaskTodo"};
+        // Date Picker
+        mainPanel.add(createLabel("📅 Due Date:"));
+        JDateChooser dateChooser = new JDateChooser();
+        dateChooser.setDate(java.sql.Date.valueOf(LocalDate.now()));
+        dateChooser.setPreferredSize(new Dimension(400, 40));
+        mainPanel.add(dateChooser);
+        mainPanel.add(Box.createRigidArea(new Dimension(0, 15)));
+
+        // Priority ComboBox
+        mainPanel.add(createLabel("🎨 Priority:"));
+        JComboBox<Priority> priorityBox = new JComboBox<>(Priority.values());
+        priorityBox.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        priorityBox.setPreferredSize(new Dimension(400, 40));
+        mainPanel.add(priorityBox);
+        mainPanel.add(Box.createRigidArea(new Dimension(0, 15)));
+
+        // Type ComboBox
+        mainPanel.add(createLabel("🌟 Type:"));
+        String[] types = {"🎯 Activity", "📅 Event", "✏️ Task"};
         JComboBox<String> typeBox = new JComboBox<>(types);
+        typeBox.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        typeBox.setPreferredSize(new Dimension(400, 40));
+        mainPanel.add(typeBox);
+        mainPanel.add(Box.createRigidArea(new Dimension(0, 15)));
 
-        String[] priorities = {"Low", "Medium", "High"};
-        JComboBox<String> priorityBox = new JComboBox<>(priorities);
+        // Extra Fields Panel
+        JPanel extraPanel = new JPanel();
+        extraPanel.setLayout(new BoxLayout(extraPanel, BoxLayout.Y_AXIS));
+        extraPanel.setOpaque(false);
         
-        JTextField detailField = new JTextField();
-        JLabel detailLabel = new JLabel("Location/Duration:");
-        detailField.setVisible(false);
-        detailLabel.setVisible(false);
+        JLabel extraLabel = createLabel("");
+        JTextField extraField = createTextField();
+        JCheckBox importantCheck = new JCheckBox("⭐ Mark as Important");
+        importantCheck.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        importantCheck.setOpaque(false);
+        
+        extraPanel.add(extraLabel);
+        extraPanel.add(extraField);
+        extraPanel.add(importantCheck);
+        
+        extraLabel.setVisible(false);
+        extraField.setVisible(false);
+        importantCheck.setVisible(false);
 
         typeBox.addActionListener(e -> {
-            String selected = (String) typeBox.getSelectedItem();
-            if ("ActivityTodo".equals(selected)) {
-                detailLabel.setText("Location:");
-                detailField.setVisible(true);
-                detailLabel.setVisible(true);
-            } else if ("EventTodo".equals(selected)) {
-                detailLabel.setText("Duration (Hours):");
-                detailField.setVisible(true);
-                detailLabel.setVisible(true);
-            } else {
-                detailField.setVisible(false);
-                detailLabel.setVisible(false);
+            int idx = typeBox.getSelectedIndex();
+            if (idx == 0) { // Activity
+                extraLabel.setText("📍 Location:");
+                extraLabel.setVisible(true);
+                extraField.setVisible(true);
+                importantCheck.setVisible(false);
+            } else if (idx == 1) { // Event
+                extraLabel.setText("⏱️ Duration (hours):");
+                extraLabel.setVisible(true);
+                extraField.setVisible(true);
+                importantCheck.setVisible(false);
+            } else { // Task
+                extraLabel.setVisible(false);
+                extraField.setVisible(false);
+                importantCheck.setVisible(true);
+            }
+            dialog.revalidate();
+        });
+
+        mainPanel.add(extraPanel);
+        mainPanel.add(Box.createRigidArea(new Dimension(0, 20)));
+
+        // Buttons
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 0));
+        buttonPanel.setOpaque(false);
+
+        JButton saveBtn = createCuteButton("💾 Save", PINK_DARK);
+        saveBtn.setPreferredSize(new Dimension(150, 45));
+        saveBtn.addActionListener(e -> {
+            if (titleField.getText().trim().isEmpty()) {
+                showMessage("⚠️ Oops!", "Please enter a title! 🌸", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            try {
+                LocalDate date = dateChooser.getDate().toInstant()
+                    .atZone(java.time.ZoneId.systemDefault()).toLocalDate();
+                Priority priority = (Priority) priorityBox.getSelectedItem();
+                String title = titleField.getText().trim();
+                String desc = descArea.getText().trim();
+                
+                ToDo newTodo = null;
+                int typeIdx = typeBox.getSelectedIndex();
+                
+                if (typeIdx == 0) { // Activity
+                    String location = extraField.getText().trim();
+                    if (location.isEmpty()) location = "Unknown";
+                    newTodo = new ActivityToDo(title, desc, date, priority, location);
+                } else if (typeIdx == 1) { // Event
+                    int duration = 1;
+                    try {
+                        duration = Integer.parseInt(extraField.getText().trim());
+                    } catch (NumberFormatException ex) {
+                        duration = 1;
+                    }
+                    newTodo = new EventToDo(title, desc, date, priority, duration);
+                } else { // Task
+                    newTodo = new TaskToDo(title, desc, date, priority);
+                    ((TaskToDo) newTodo).setImportant(importantCheck.isSelected());
+                }
+                
+                if (manager.saveToDo(newTodo, loggedInUser.getId())) {
+                    showMessage("🎉 Success!", "Todo added successfully! 💖", 
+                              JOptionPane.INFORMATION_MESSAGE);
+                    dialog.dispose();
+                    loadTodos();
+                } else {
+                    showMessage("❌ Error", "Failed to save todo! 😢", JOptionPane.ERROR_MESSAGE);
+                }
+                
+            } catch (Exception ex) {
+                showMessage("❌ Error", "Invalid data: " + ex.getMessage(), JOptionPane.ERROR_MESSAGE);
             }
         });
 
-        Object[] form = {
-                "Task name:", titleField,
-                "Type:", typeBox,
-                "Priority:", priorityBox,
-                detailLabel, detailField
-        };
+        JButton cancelBtn = createCuteButton("❌ Cancel", PINK_ACCENT);
+        cancelBtn.setPreferredSize(new Dimension(150, 45));
+        cancelBtn.addActionListener(e -> dialog.dispose());
 
-        int result = JOptionPane.showConfirmDialog(this, form, "Add Task", JOptionPane.OK_CANCEL_OPTION);
+        buttonPanel.add(saveBtn);
+        buttonPanel.add(cancelBtn);
+        mainPanel.add(buttonPanel);
 
-        if (result == JOptionPane.OK_OPTION && !titleField.getText().trim().isEmpty()) {
+        dialog.setContentPane(mainPanel);
+        dialog.setVisible(true);
+    }
 
-            ToDo newTodo;
-            Priority prio = Priority.valueOf(priorityBox.getSelectedItem().toString().toUpperCase());
-            String detail = detailField.getText().trim();
+    private JLabel createLabel(String text) {
+        JLabel label = new JLabel(text);
+        label.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        label.setForeground(PINK_DARK);
+        return label;
+    }
 
-            switch (typeBox.getSelectedItem().toString()) {
-                case "ActivityTodo":
-                    String location = detail.isEmpty() ? "Unknown" : detail;
-                    newTodo = new ActivityToDo(titleField.getText(), "Description", LocalDate.now(), prio, location);
-                    break;
-                case "EventTodo":
-                    int duration = 1;
-                    try {
-                        duration = Integer.parseInt(detail);
-                    } catch (NumberFormatException ignored) {}
-                    newTodo = new EventToDo(titleField.getText(), "Description", LocalDate.now(), prio, duration);
-                    break;
-                default:
-                    newTodo = new TaskToDo(titleField.getText(), "Description", LocalDate.now(), prio);
-            }
+    private JTextField createTextField() {
+        JTextField field = new JTextField();
+        field.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        field.setPreferredSize(new Dimension(400, 40));
+        field.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(PINK_ACCENT, 2, true),
+            new EmptyBorder(5, 10, 5, 10)
+        ));
+        return field;
+    }
 
-            ToDoManager manager = new ToDoManager(); 
-            int userId = loggedInUser.getId(); 
+    private void refreshList() {
+        todoListPanel.removeAll();
 
-            if (manager.saveToDo(newTodo, userId)) { 
-                JOptionPane.showMessageDialog(this, "To-Do berhasil ditambahkan!", "Sukses", JOptionPane.INFORMATION_MESSAGE);
-                loadTodosFromDatabase(); // Reload dari database
-            } else {
-                JOptionPane.showMessageDialog(this, "Gagal menyimpan To-Do.", "Error", JOptionPane.ERROR_MESSAGE);
+        List<ToDo> filteredTodos = todos.stream()
+            .filter(this::matchesFilter)
+            .toList();
+
+        if (filteredTodos.isEmpty()) {
+            JPanel emptyPanel = new JPanel();
+            emptyPanel.setOpaque(false);
+            JLabel emptyLabel = new JLabel("🌸 No todos here! Add some cute tasks! 💖");
+            emptyLabel.setFont(new Font("Segoe UI", Font.PLAIN, 18));
+            emptyLabel.setForeground(PINK_ACCENT);
+            emptyPanel.add(emptyLabel);
+            todoListPanel.add(emptyPanel);
+        } else {
+            for (ToDo todo : filteredTodos) {
+                todoListPanel.add(createTodoCard(todo));
+                todoListPanel.add(Box.createRigidArea(new Dimension(0, 10)));
             }
         }
+
+        todoListPanel.revalidate();
+        todoListPanel.repaint();
     }
 
-    private void showEditDialog(ToDo todo) {
-        JTextField titleField = new JTextField(todo.getTitle());
-
-        String[] priorities = {"Low", "Medium", "High"};
-        JComboBox<String> prioBox = new JComboBox<>(priorities);
-        prioBox.setSelectedItem(todo.getPriority());
-
-        Object[] form = {
-                "Task name:", titleField,
-                "Priority:", prioBox
+    private boolean matchesFilter(ToDo todo) {
+        boolean typeMatch = switch (activeFilter) {
+            case "ALL" -> true;
+            case "COMPLETED" -> todo.isCompleted();
+            case "ACTIVE" -> !todo.isCompleted();
+            default -> todo.getType().equals(activeFilter);
         };
 
-        int result = JOptionPane.showConfirmDialog(this, form, "Edit Task", JOptionPane.OK_CANCEL_OPTION);
+        boolean priorityMatch = priorityFilter == null || todo.getPriority() == priorityFilter;
 
-        if (result == JOptionPane.OK_OPTION) {
-            String newTitle = titleField.getText().trim();
-            String newPriority = prioBox.getSelectedItem().toString();
-            
-            // Update menggunakan TodoUpdateThread (simulasi, perlu ID dari database)
-            todo.setTitle(newTitle);
-            todo.setPriority(newPriority);
-            refreshList();
-        }
+        return typeMatch && priorityMatch;
     }
 
-    private boolean shouldShow(ToDo t) {
-        boolean typeMatch =
-                activeFilter.equals("All") ||
-                        (activeFilter.equals("Completed") && t.isCompleted()) ||
-                        t.getType().equals(activeFilter);
+    // Continuation of TodoGUI.java - Card Creation and Utilities
 
-        boolean prioMatch =
-                priorityFilter.equals("AllPriority") ||
-                        t.getPriority().equals(priorityFilter);
-
-        return typeMatch && prioMatch;
-    }
-
-    private JPanel createTaskCard(ToDo todo) {
+    private JPanel createTodoCard(ToDo todo) {
         JPanel card = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
-                Graphics2D g2 = (Graphics2D) g;
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(CARD);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 18, 18);
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                // Shadow
+                g2d.setColor(new Color(0, 0, 0, 30));
+                g2d.fillRoundRect(3, 3, getWidth() - 3, getHeight() - 3, 20, 20);
+                
+                // Card background
+                if (todo.isCompleted()) {
+                    g2d.setColor(new Color(240, 240, 240));
+                } else if (todo.isOverdue()) {
+                    g2d.setColor(new Color(255, 230, 230));
+                } else if (todo.isDueToday()) {
+                    g2d.setColor(new Color(255, 250, 220));
+                } else {
+                    g2d.setColor(WHITE);
+                }
+                g2d.fillRoundRect(0, 0, getWidth() - 3, getHeight() - 3, 20, 20);
+                
+                // Border
+                g2d.setColor(PINK_ACCENT);
+                g2d.setStroke(new BasicStroke(2));
+                g2d.drawRoundRect(0, 0, getWidth() - 4, getHeight() - 4, 20, 20);
             }
         };
 
-        card.setLayout(new BorderLayout());
+        card.setLayout(new BorderLayout(15, 10));
         card.setOpaque(false);
-        card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 80));
-        card.setBorder(new EmptyBorder(10, 15, 10, 15));
+        card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 140));
+        card.setPreferredSize(new Dimension(1000, 140));
+        card.setBorder(new EmptyBorder(15, 20, 15, 20));
 
-        JLabel title = new JLabel(todo.getTitle());
-        title.setForeground(Color.WHITE);
-        title.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        // Left: Type Icon
+        JLabel iconLabel = new JLabel(todo.getTypeEmoji());
+        iconLabel.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 48));
+        card.add(iconLabel, BorderLayout.WEST);
 
-        JLabel small = new JLabel(todo.getType() + " • Priority: " + todo.getPriority());
-        small.setForeground(new Color(220, 220, 220));
+        // Center: Content
+        JPanel contentPanel = new JPanel();
+        contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
+        contentPanel.setOpaque(false);
 
-        JLabel desc = new JLabel(todo.getDescription());
-        desc.setForeground(new Color(210, 210, 210));
-
-        JPanel left = new JPanel();
-        left.setOpaque(false);
-        left.setLayout(new BoxLayout(left, BoxLayout.Y_AXIS));
-        left.add(title);
-        left.add(small);
-        left.add(desc);
-
-        JPanel right = new JPanel();
-        right.setOpaque(false);
-
-        JLabel badge = new JLabel(todo.getPriority());
-        badge.setOpaque(true);
-        badge.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        badge.setBorder(new EmptyBorder(3, 8, 3, 8));
-
-        switch (todo.getPriority()) {
-            case "Low": badge.setBackground(new Color(85,214,120)); break;
-            case "Medium": badge.setBackground(new Color(255,208,70)); break;
-            case "High": badge.setBackground(new Color(255,92,92)); break;
+        // Title
+        JLabel titleLabel = new JLabel(todo.getTitle());
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        titleLabel.setForeground(todo.isCompleted() ? Color.GRAY : PINK_DARK);
+        if (todo.isCompleted()) {
+            titleLabel.setText("<html><strike>" + todo.getTitle() + "</strike></html>");
         }
+        contentPanel.add(titleLabel);
 
-        JButton edit = new JButton("edit");
-        JButton done = new JButton("✓");
+        // Description
+        JLabel descLabel = new JLabel(todo.getDescription());
+        descLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        descLabel.setForeground(Color.GRAY);
+        contentPanel.add(descLabel);
 
-        edit.addActionListener(e -> showEditDialog(todo));
-        done.addActionListener(e -> {
-            todo.setCompleted(true);
-            refreshList();
-        });
+        // Extra Info
+        JLabel extraLabel = new JLabel(todo.getExtraInfo());
+        extraLabel.setFont(new Font("Segoe UI", Font.ITALIC, 13));
+        extraLabel.setForeground(PINK_ACCENT);
+        contentPanel.add(extraLabel);
 
-        right.add(badge);
-        right.add(edit);
-        right.add(done);
+        // Date & Status
+        String dateText = "📅 " + todo.getFormattedDate();
+        if (todo.isOverdue()) {
+            dateText += " ⚠️ OVERDUE";
+        } else if (todo.isDueToday()) {
+            dateText += " 🔔 TODAY";
+        }
+        JLabel dateLabel = new JLabel(dateText);
+        dateLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        dateLabel.setForeground(todo.isOverdue() ? Color.RED : Color.DARK_GRAY);
+        contentPanel.add(dateLabel);
 
-        card.add(left, BorderLayout.WEST);
-        card.add(right, BorderLayout.EAST);
+        card.add(contentPanel, BorderLayout.CENTER);
+
+        // Right: Priority Badge & Buttons
+        JPanel rightPanel = new JPanel();
+        rightPanel.setLayout(new BoxLayout(rightPanel, BoxLayout.Y_AXIS));
+        rightPanel.setOpaque(false);
+
+        // Priority Badge
+        JLabel priorityBadge = new JLabel(todo.getPriority().toString());
+        priorityBadge.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        priorityBadge.setForeground(WHITE);
+        priorityBadge.setOpaque(true);
+        priorityBadge.setBackground(Color.decode(todo.getPriority().getColor()));
+        priorityBadge.setBorder(new EmptyBorder(5, 12, 5, 12));
+        priorityBadge.setAlignmentX(Component.CENTER_ALIGNMENT);
+        rightPanel.add(priorityBadge);
+
+        rightPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+
+        // Buttons Panel
+        JPanel buttonsPanel = new JPanel(new GridLayout(2, 2, 5, 5));
+        buttonsPanel.setOpaque(false);
+        buttonsPanel.setMaximumSize(new Dimension(120, 60));
+
+        JButton editBtn = createSmallButton("✏️");
+        editBtn.setToolTipText("Edit");
+        editBtn.addActionListener(e -> showEditDialog(todo));
+
+        JButton deleteBtn = createSmallButton("🗑️");
+        deleteBtn.setToolTipText("Delete");
+        deleteBtn.addActionListener(e -> deleteTodo(todo));
+
+        JButton completeBtn = createSmallButton(todo.isCompleted() ? "↩️" : "✅");
+        completeBtn.setToolTipText(todo.isCompleted() ? "Mark Incomplete" : "Mark Complete");
+        completeBtn.addActionListener(e -> toggleComplete(todo));
+
+        JButton infoBtn = createSmallButton("ℹ️");
+        infoBtn.setToolTipText("Details");
+        infoBtn.addActionListener(e -> showDetails(todo));
+
+        buttonsPanel.add(editBtn);
+        buttonsPanel.add(deleteBtn);
+        buttonsPanel.add(completeBtn);
+        buttonsPanel.add(infoBtn);
+
+        rightPanel.add(buttonsPanel);
+        card.add(rightPanel, BorderLayout.EAST);
 
         return card;
     }
 
-    private void refreshList() {
-        taskListPanel.removeAll();
+    private JButton createSmallButton(String text) {
+        JButton btn = new JButton(text);
+        btn.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 16));
+        btn.setBackground(PINK_SECONDARY);
+        btn.setBorder(null);
+        btn.setFocusPainted(false);
+        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btn.setPreferredSize(new Dimension(30, 30));
+        
+        btn.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                btn.setBackground(PINK_PRIMARY);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                btn.setBackground(PINK_SECONDARY);
+            }
+        });
+        
+        return btn;
+    }
 
-        for (ToDo t : todos) {
-            if (shouldShow(t)) {
-                taskListPanel.add(createTaskCard(t));
-                taskListPanel.add(Box.createRigidArea(new Dimension(0, 8)));
+    private void showEditDialog(ToDo todo) {
+        // Similar to showAddDialog but with pre-filled values
+        JDialog dialog = new JDialog(this, "✏️ Edit Todo", true);
+        dialog.setSize(500, 550);
+        dialog.setLocationRelativeTo(this);
+
+        JPanel mainPanel = new JPanel();
+        mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
+        mainPanel.setBackground(PINK_LIGHT);
+        mainPanel.setBorder(new EmptyBorder(25, 30, 25, 30));
+
+        mainPanel.add(createLabel("✏️ Title:"));
+        JTextField titleField = createTextField();
+        titleField.setText(todo.getTitle());
+        mainPanel.add(titleField);
+        mainPanel.add(Box.createRigidArea(new Dimension(0, 15)));
+
+        mainPanel.add(createLabel("📝 Description:"));
+        JTextArea descArea = new JTextArea(3, 20);
+        descArea.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        descArea.setLineWrap(true);
+        descArea.setWrapStyleWord(true);
+        descArea.setText(todo.getDescription());
+        descArea.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(PINK_ACCENT, 2, true),
+            new EmptyBorder(10, 10, 10, 10)
+        ));
+        JScrollPane descScroll = new JScrollPane(descArea);
+        descScroll.setPreferredSize(new Dimension(400, 80));
+        mainPanel.add(descScroll);
+        mainPanel.add(Box.createRigidArea(new Dimension(0, 15)));
+
+        mainPanel.add(createLabel("📅 Due Date:"));
+        JDateChooser dateChooser = new JDateChooser();
+        dateChooser.setDate(java.sql.Date.valueOf(todo.getDate()));
+        dateChooser.setPreferredSize(new Dimension(400, 40));
+        mainPanel.add(dateChooser);
+        mainPanel.add(Box.createRigidArea(new Dimension(0, 15)));
+
+        mainPanel.add(createLabel("🎨 Priority:"));
+        JComboBox<Priority> priorityBox = new JComboBox<>(Priority.values());
+        priorityBox.setSelectedItem(todo.getPriority());
+        priorityBox.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        priorityBox.setPreferredSize(new Dimension(400, 40));
+        mainPanel.add(priorityBox);
+        mainPanel.add(Box.createRigidArea(new Dimension(0, 20)));
+
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 0));
+        buttonPanel.setOpaque(false);
+
+        JButton saveBtn = createCuteButton("💾 Save", PINK_DARK);
+        saveBtn.setPreferredSize(new Dimension(150, 45));
+        saveBtn.addActionListener(e -> {
+            todo.setTitle(titleField.getText().trim());
+            todo.setDescription(descArea.getText().trim());
+            todo.setDate(dateChooser.getDate().toInstant()
+                .atZone(java.time.ZoneId.systemDefault()).toLocalDate());
+            todo.setPriority((Priority) priorityBox.getSelectedItem());
+            
+            if (manager.updateToDo(todo)) {
+                showMessage("🎉 Success!", "Todo updated! 💖", JOptionPane.INFORMATION_MESSAGE);
+                dialog.dispose();
+                refreshList();
+            } else {
+                showMessage("❌ Error", "Failed to update! 😢", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+        JButton cancelBtn = createCuteButton("❌ Cancel", PINK_ACCENT);
+        cancelBtn.setPreferredSize(new Dimension(150, 45));
+        cancelBtn.addActionListener(e -> dialog.dispose());
+
+        buttonPanel.add(saveBtn);
+        buttonPanel.add(cancelBtn);
+        mainPanel.add(buttonPanel);
+
+        dialog.setContentPane(mainPanel);
+        dialog.setVisible(true);
+    }
+
+    private void deleteTodo(ToDo todo) {
+        int confirm = JOptionPane.showConfirmDialog(this,
+            "Delete this todo? 🗑️\n" + todo.getTitle(),
+            "Confirm Delete",
+            JOptionPane.YES_NO_OPTION);
+        
+        if (confirm == JOptionPane.YES_OPTION) {
+            if (manager.deleteToDo(todo.getId())) {
+                showMessage("✅ Deleted", "Todo deleted successfully! 💔", 
+                          JOptionPane.INFORMATION_MESSAGE);
+                loadTodos();
+            } else {
+                showMessage("❌ Error", "Failed to delete! 😢", JOptionPane.ERROR_MESSAGE);
             }
         }
+    }
 
-        taskListPanel.revalidate();
-        taskListPanel.repaint();
+    private void toggleComplete(ToDo todo) {
+        todo.setCompleted(!todo.isCompleted());
+        if (manager.updateToDo(todo)) {
+            refreshList();
+            updateStats();
+        } else {
+            showMessage("❌ Error", "Failed to update! 😢", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void showDetails(ToDo todo) {
+        String details = String.format(
+            "%s %s\n\n" +
+            "Title: %s\n" +
+            "Description: %s\n" +
+            "Date: %s\n" +
+            "Priority: %s\n" +
+            "Status: %s\n" +
+            "%s",
+            todo.getTypeEmoji(), todo.getType(),
+            todo.getTitle(),
+            todo.getDescription(),
+            todo.getFormattedDate(),
+            todo.getPriority(),
+            todo.isCompleted() ? "✅ Completed" : "⏳ Active",
+            todo.getExtraInfo()
+        );
+        
+        showMessage("ℹ️ Todo Details", details, JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private void updateStats() {
+        long active = todos.stream().filter(t -> !t.isCompleted()).count();
+        long completed = todos.stream().filter(ToDo::isCompleted).count();
+        long overdue = todos.stream().filter(ToDo::isOverdue).count();
+        
+        statsLabel.setText(String.format("📊 %d Active | ✅ %d Done | ⚠️ %d Overdue", 
+                                        active, completed, overdue));
+    }
+
+    private void showMessage(String title, String message, int type) {
+        JOptionPane.showMessageDialog(this, message, title, type);
     }
 }
