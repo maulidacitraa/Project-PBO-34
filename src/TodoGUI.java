@@ -15,7 +15,7 @@ public class TodoGUI extends JFrame {
     private final Color PINK_LIGHT = new Color(0xFFF0F7);
     private final Color WHITE = Color.WHITE;
 
-    private JPanel todoListPanel;  // ← UBAH INI (hapus final)
+    private JPanel todoListPanel;  
     private final List<ToDo> todos;
     private final User loggedInUser;
     private final ToDoManager manager;
@@ -234,8 +234,6 @@ public class TodoGUI extends JFrame {
         sidebar.add(btn);
         sidebar.add(Box.createRigidArea(new Dimension(0, 5)));
     }
-
-    // Continuation of TodoGUI.java
     
     private JPanel createCenterPanel() {
         JPanel centerPanel = new JPanel(new BorderLayout());
@@ -495,8 +493,6 @@ public class TodoGUI extends JFrame {
         }).start();
     }
 
-    // Continuation of TodoGUI.java - Dialogs and Card Creation
-
     private void showAddDialog() {
         JDialog dialog = new JDialog(this, "✨ Add New Todo 💖", true);
         dialog.setSize(500, 650);
@@ -617,11 +613,13 @@ public class TodoGUI extends JFrame {
                 ToDo newTodo = null;
                 int typeIdx = typeBox.getSelectedIndex();
                 
-                if (typeIdx == 0) { // Activity
+                // Activity
+                if (typeIdx == 0) { 
                     String location = extraField.getText().trim();
                     if (location.isEmpty()) location = "Unknown";
                     newTodo = new ActivityToDo(title, desc, date, priority, location);
-                } else if (typeIdx == 1) { // Event
+                // Event
+                } else if (typeIdx == 1) { 
                     int duration = 1;
                     try {
                         duration = Integer.parseInt(extraField.getText().trim());
@@ -629,7 +627,8 @@ public class TodoGUI extends JFrame {
                         duration = 1;
                     }
                     newTodo = new EventToDo(title, desc, date, priority, duration);
-                } else { // Task
+                // Task
+                } else { 
                     newTodo = new TaskToDo(title, desc, date, priority);
                     ((TaskToDo) newTodo).setImportant(importantCheck.isSelected());
                 }
@@ -716,8 +715,6 @@ public class TodoGUI extends JFrame {
 
         return typeMatch && priorityMatch;
     }
-
-    // Continuation of TodoGUI.java - Card Creation and Utilities
 
     private JPanel createTodoCard(ToDo todo) {
         JPanel card = new JPanel() {
@@ -872,7 +869,7 @@ public class TodoGUI extends JFrame {
     }
 
     private void showEditDialog(ToDo todo) {
-        // Similar to showAddDialog but with pre-filled values
+        // showAddDialog pre-filled values
         JDialog dialog = new JDialog(this, "✏️ Edit Todo", true);
         dialog.setSize(500, 550);
         dialog.setLocationRelativeTo(this);
