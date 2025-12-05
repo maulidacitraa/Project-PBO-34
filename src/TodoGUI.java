@@ -86,7 +86,7 @@ public class TodoGUI extends JFrame {
 
         statsLabel = new JLabel("📊 Loading...");
         statsLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        statsLabel.setForeground(PINK_DARK);
+        statsLabel.setForeground(WHITE);
         rightPanel.add(statsLabel);
 
         JButton statsButton = createTopButton("📊 Stats", PINK_ACCENT);
@@ -96,14 +96,6 @@ public class TodoGUI extends JFrame {
         JButton refreshButton = createTopButton("🔄 Refresh", PINK_ACCENT);
         refreshButton.addActionListener(e -> loadTodos());
         rightPanel.add(refreshButton);
-
-        JLabel userLabel = new JLabel("👤 " + loggedInUser.getUsername());
-        userLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        userLabel.setForeground(WHITE);
-        userLabel.setOpaque(true);
-        userLabel.setBackground(PINK_DARK);
-        userLabel.setBorder(new EmptyBorder(8, 15, 8, 15));
-        rightPanel.add(userLabel);
 
         topBar.add(rightPanel, BorderLayout.EAST);
 
