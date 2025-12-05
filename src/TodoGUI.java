@@ -159,7 +159,6 @@ public class TodoGUI extends JFrame {
         addFilterButton(sidebar, "EVENT", "📅 Events", null);
         addFilterButton(sidebar, "TASK", "✏️ Tasks", null);
         addFilterButton(sidebar, "COMPLETED", "✅ Completed", null);
-        addFilterButton(sidebar, "ACTIVE", "⏳ Active", null);
 
         sidebar.add(Box.createRigidArea(new Dimension(0, 20)));
         sidebar.add(new JSeparator());
@@ -168,7 +167,6 @@ public class TodoGUI extends JFrame {
         // Priority Section
         addSidebarTitle(sidebar, "🎨 PRIORITY");
         
-        addFilterButton(sidebar, "PRIORITY_ALL", "🌈 All", null);
         addFilterButton(sidebar, "PRIORITY_HIGH", "🔴 High", Priority.HIGH);
         addFilterButton(sidebar, "PRIORITY_MEDIUM", "🟡 Medium", Priority.MEDIUM);
         addFilterButton(sidebar, "PRIORITY_LOW", "🟢 Low", Priority.LOW);
@@ -1001,7 +999,7 @@ public class TodoGUI extends JFrame {
         long completed = todos.stream().filter(ToDo::isCompleted).count();
         long overdue = todos.stream().filter(ToDo::isOverdue).count();
         
-        statsLabel.setText(String.format("📊 %d Active | ✅ %d Done | ⚠️ %d Overdue", 
+        statsLabel.setText(String.format("📊 %d Active | ✅ %d Completed | ⚠️ %d Overdue", 
                                         active, completed, overdue));
     }
 
