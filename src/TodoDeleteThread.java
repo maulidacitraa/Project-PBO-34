@@ -1,6 +1,6 @@
 import java.sql.*;
 
-public class TodoDeleteThread extends Thread {
+//public class TodoDeleteThread extends Thread {
     
     private final int todoId;
     private boolean success = false;

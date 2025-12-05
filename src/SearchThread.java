@@ -42,7 +42,7 @@ public class SearchThread extends Thread {
             stmt.setString(2, searchPattern);
             stmt.setString(3, searchPattern);
 
-            Thread.sleep(300); // Simulasi delay
+            Thread.sleep(300); // delay
 
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {

@@ -5,10 +5,8 @@ public class MainApp {
     public static void main(String[] args) {
         System.out.println("╔═══════════════════════════════════════════════════════════╗");
         System.out.println("║               ✨ TODO LIST APPLICATION 💖                ║");
-        System.out.println("║              Made with CIWI-CIWI Cuteness!                ║");
+        System.out.println("║                  Made with CIWI-CIWI 34!                  ║");
         System.out.println("╚═══════════════════════════════════════════════════════════╝\n");
-
-        // Set Look and Feel
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         } catch (Exception e) {
@@ -19,7 +17,7 @@ public class MainApp {
         SwingUtilities.invokeLater(() -> {
             showSplashScreen();
             
-            // Launch Login GUI after splash
+            // Show Login GUI
             new Thread(() -> {
                 try {
                     Thread.sleep(3000);

@@ -1,6 +1,6 @@
 import java.sql.*;
 
-public class TodoUpdateThread extends Thread {
+//public class TodoUpdateThread extends Thread {
     
     private final int todoId;
     private final String newTitle;

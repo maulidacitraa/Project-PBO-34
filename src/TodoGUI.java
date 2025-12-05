@@ -15,7 +15,7 @@ public class TodoGUI extends JFrame {
     private final Color PINK_LIGHT = new Color(0xFFF0F7);
     private final Color WHITE = Color.WHITE;
 
-    private final JPanel todoListPanel;
+    private JPanel todoListPanel;  // ← UBAH INI (hapus final)
     private final List<ToDo> todos;
     private final User loggedInUser;
     private final ToDoManager manager;
@@ -30,7 +30,7 @@ public class TodoGUI extends JFrame {
         this.todos = new ArrayList<>();
         this.manager = new ToDoManager();
 
-        setTitle("✨ Cute Todo List 💖");
+        setTitle("✨ Todo List 💖");
         setSize(1400, 900);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
@@ -75,7 +75,7 @@ public class TodoGUI extends JFrame {
         topBar.setBorder(new EmptyBorder(15, 20, 15, 20));
 
         // Left: Title
-        JLabel titleLabel = new JLabel("✨ My Cute Todo List 💖");
+        JLabel titleLabel = new JLabel("✨ My Todo List 💖");
         titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 32));
         titleLabel.setForeground(PINK_DARK);
         topBar.add(titleLabel, BorderLayout.WEST);
@@ -372,7 +372,7 @@ public class TodoGUI extends JFrame {
         
         JPanel loadingPanel = new JPanel();
         loadingPanel.setOpaque(false);
-        loadingPanel.add(new JLabel("⏳ Loading your cute todos..."));
+        loadingPanel.add(new JLabel("⏳ Loading your todos..."));
         todoListPanel.add(loadingPanel);
         todoListPanel.revalidate();
         todoListPanel.repaint();
@@ -455,7 +455,7 @@ public class TodoGUI extends JFrame {
         panel.setBackground(PINK_LIGHT);
         panel.setBorder(new EmptyBorder(20, 20, 20, 20));
         
-        JLabel loadingLabel = new JLabel("📊 Calculating cute statistics... 💖", SwingConstants.CENTER);
+        JLabel loadingLabel = new JLabel("📊 Calculating statistics... 💖", SwingConstants.CENTER);
         loadingLabel.setFont(new Font("Segoe UI", Font.PLAIN, 16));
         panel.add(loadingLabel);
         
@@ -688,7 +688,7 @@ public class TodoGUI extends JFrame {
         if (filteredTodos.isEmpty()) {
             JPanel emptyPanel = new JPanel();
             emptyPanel.setOpaque(false);
-            JLabel emptyLabel = new JLabel("🌸 No todos here! Add some cute tasks! 💖");
+            JLabel emptyLabel = new JLabel("🌸 No todos here! Add some tasks! 💖");
             emptyLabel.setFont(new Font("Segoe UI", Font.PLAIN, 18));
             emptyLabel.setForeground(PINK_ACCENT);
             emptyPanel.add(emptyLabel);

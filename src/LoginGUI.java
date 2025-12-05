@@ -4,17 +4,17 @@ import javax.swing.border.EmptyBorder;
 
 public class LoginGUI extends JFrame {
     // Pink Color Palette 
-    private final Color PINK_PRIMARY = new Color(0xFFB3D9);    // Soft pink
-    private final Color PINK_SECONDARY = new Color(0xFFE5F0);  // Very light pink
-    private final Color PINK_ACCENT = new Color(0xFF85B3);     // Darker pink
-    private final Color PINK_DARK = new Color(0xE875A0);       // Strong pink
+    private final Color PINK_PRIMARY = new Color(0xFFB3D9);    
+    private final Color PINK_SECONDARY = new Color(0xFFE5F0);  
+    private final Color PINK_ACCENT = new Color(0xFF85B3);     
+    private final Color PINK_DARK = new Color(0xE875A0);       
     private final Color WHITE = Color.WHITE;
 
     private final JTextField usernameField;
     private final JPasswordField passwordField;
 
     public LoginGUI() {
-        setTitle("✨ Cute Todo List - Login 💖");
+        setTitle("✨ Todo List - Login 💖");
         setSize(1000, 700);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
@@ -28,7 +28,7 @@ public class LoginGUI extends JFrame {
                 Graphics2D g2d = (Graphics2D) g;
                 g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
                 
-                // Gradient background
+                // Gradien background
                 GradientPaint gradient = new GradientPaint(
                     0, 0, PINK_SECONDARY,
                     0, getHeight(), PINK_PRIMARY
@@ -36,7 +36,7 @@ public class LoginGUI extends JFrame {
                 g2d.setPaint(gradient);
                 g2d.fillRect(0, 0, getWidth(), getHeight());
                 
-                // Cute decorative circles
+                // decorasi circles
                 g2d.setColor(new Color(255, 255, 255, 50));
                 g2d.fillOval(-50, -50, 200, 200);
                 g2d.fillOval(getWidth() - 150, getHeight() - 150, 200, 200);
@@ -51,11 +51,11 @@ public class LoginGUI extends JFrame {
         titlePanel.setOpaque(false);
         titlePanel.setBorder(new EmptyBorder(40, 0, 20, 0));
         
-        JLabel appTitle = new JLabel("✨ Cute Todo List 💖", SwingConstants.CENTER);
+        JLabel appTitle = new JLabel("✨ Todo List 💖", SwingConstants.CENTER);
         appTitle.setForeground(PINK_DARK);
         appTitle.setFont(new Font("Segoe UI", Font.BOLD, 48));
         
-        JLabel subtitle = new JLabel("🌸 Organize your day with cuteness! 🌸", SwingConstants.CENTER);
+        JLabel subtitle = new JLabel("🌸 Organize your day with hapinnes! 🌸", SwingConstants.CENTER);
         subtitle.setForeground(PINK_ACCENT);
         subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 18));
         
@@ -80,7 +80,7 @@ public class LoginGUI extends JFrame {
         card.setLayout(null);
         wrapper.add(card);
 
-        // Login Label with emoji
+        // Login Label 
         JLabel loginLabel = new JLabel("🔐 Login", SwingConstants.CENTER);
         loginLabel.setForeground(PINK_DARK);
         loginLabel.setFont(new Font("Segoe UI", Font.BOLD, 32));
@@ -154,7 +154,7 @@ public class LoginGUI extends JFrame {
         card.add(btnRegister);
 
         // Footer
-        JLabel footerLabel = new JLabel("Made with 💖 by Cute Team", SwingConstants.CENTER);
+        JLabel footerLabel = new JLabel("Made with 💖 by 34 gurls", SwingConstants.CENTER);
         footerLabel.setForeground(PINK_ACCENT);
         footerLabel.setFont(new Font("Segoe UI", Font.ITALIC, 12));
         footerLabel.setBounds(0, 430, 420, 30);
